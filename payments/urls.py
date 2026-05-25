@@ -8,6 +8,7 @@ from .views import (
     PaymentViewSet,
     mpesa_callback_config,
     mpesa_callback,
+    mpesa_health,
 )
 
 
@@ -21,5 +22,6 @@ router.register(r'cash-drawer-transactions', CashDrawerTransactionViewSet)
 urlpatterns = [
     path('mpesa/callback/', mpesa_callback, name='mpesa_callback'),
     path('mpesa/callback-config/', mpesa_callback_config, name='mpesa_callback_config'),
+    path('mpesa/health/', mpesa_health, name='mpesa_health'),
     path('', include(router.urls)),
 ]

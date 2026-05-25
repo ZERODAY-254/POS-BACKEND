@@ -14,6 +14,17 @@ def mpesa_base_url():
     return 'https://sandbox.safaricom.co.ke'
 
 
+def callback_url_warning():
+    callback_url = settings.MPESA_CALLBACK_URL
+    if not callback_url.startswith('https://'):
+        return ' Daraja callbacks require a public HTTPS URL.'
+    if '127.0.0.1' in callback_url or 'localhost' in callback_url:
+        return ' Callback confirmation will not reach localhost; use ngrok or a public HTTPS domain.'
+    if 'mydomain.com' in callback_url or 'your-real-domain.com' in callback_url:
+        return ' Callback URL is still a placeholder; use your real public HTTPS callback URL.'
+    return ''
+
+
 def get_access_token():
     credentials = f'{settings.MPESA_CONSUMER_KEY}:{settings.MPESA_CONSUMER_SECRET}'
     encoded_credentials = base64.b64encode(credentials.encode()).decode()
@@ -56,9 +67,7 @@ def send_stk_push(phone_number, amount, account_reference, transaction_descripti
             'raw': {},
         }
 
-    callback_warning = ''
-    if '127.0.0.1' in settings.MPESA_CALLBACK_URL or 'localhost' in settings.MPESA_CALLBACK_URL:
-        callback_warning = ' Callback confirmation will not reach localhost; use a public HTTPS URL for full confirmation.'
+    callback_warning = callback_url_warning()
 
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     password_text = f'{settings.MPESA_SHORTCODE}{settings.MPESA_PASSKEY}{timestamp}'

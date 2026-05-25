@@ -17,7 +17,7 @@ from .serializers import (
     PaymentNotificationSerializer,
     PaymentSerializer,
 )
-from .mpesa import format_phone_number, query_stk_status, send_stk_push
+from .mpesa import callback_url_warning, format_phone_number, get_access_token, query_stk_status, send_stk_push
 from .services import confirm_mpesa_transaction
 
 
@@ -177,6 +177,32 @@ class MpesaTransactionViewSet(viewsets.ReadOnlyModelViewSet):
             'transaction': MpesaTransactionSerializer(transaction).data,
         })
 
+    @action(detail=True, methods=['post'], url_path='simulate-callback')
+    def simulate_callback(self, request, pk=None):
+        transaction = self.get_object()
+        status_value = request.data.get('status', 'success')
+        receipt_number = request.data.get('receipt_number') or f'SIM-RCPT-{transaction.id:06d}'
+        transaction = confirm_mpesa_transaction(
+            transaction=transaction,
+            result_code='0' if status_value == 'success' else '1',
+            result_description='Local callback simulation',
+            metadata={
+                'MpesaReceiptNumber': receipt_number,
+                'PhoneNumber': transaction.phone_number,
+            },
+            raw_callback={
+                'simulated': True,
+                'status': status_value,
+                'receipt_number': receipt_number,
+                'received_at': timezone.now().isoformat(),
+            },
+        )
+        return Response({
+            'success': True,
+            'message': 'Local callback simulation completed',
+            'transaction': MpesaTransactionSerializer(transaction).data,
+        })
+
 
 class PaymentNotificationViewSet(viewsets.ModelViewSet):
     allowed_roles = ('admin', 'manager', 'cashier', 'storekeeper')
@@ -331,7 +357,8 @@ def mpesa_callback(request):
 def mpesa_callback_config(request):
     local_callback = request.build_absolute_uri(reverse('mpesa_callback'))
     configured_callback = settings.MPESA_CALLBACK_URL
-    is_public = configured_callback.startswith('https://') and 'localhost' not in configured_callback and '127.0.0.1' not in configured_callback
+    warning = callback_url_warning().strip()
+    is_public = configured_callback.startswith('https://') and not warning
 
     return Response({
         'environment': settings.MPESA_ENVIRONMENT,
@@ -339,5 +366,27 @@ def mpesa_callback_config(request):
         'configured_callback_url': configured_callback,
         'local_callback_url': local_callback,
         'is_public_https_callback': is_public,
-        'message': 'Use a public HTTPS callback URL for real Daraja confirmations.' if not is_public else 'Callback URL is suitable for Daraja.',
+        'message': warning or 'Callback URL is suitable for Daraja.',
     })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def mpesa_health(request):
+    try:
+        token = get_access_token()
+        token_ok = bool(token)
+        message = 'Daraja access token generated successfully'
+    except Exception as error:
+        token_ok = False
+        message = str(error)
+
+    return Response({
+        'environment': settings.MPESA_ENVIRONMENT,
+        'demo_mode': settings.MPESA_DEMO_MODE,
+        'token_ok': token_ok,
+        'shortcode': settings.MPESA_SHORTCODE,
+        'callback_url': settings.MPESA_CALLBACK_URL,
+        'callback_warning': callback_url_warning().strip(),
+        'message': message,
+    }, status=status.HTTP_200_OK if token_ok else status.HTTP_400_BAD_REQUEST)
