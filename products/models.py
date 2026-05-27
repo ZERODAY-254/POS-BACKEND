@@ -7,6 +7,10 @@ class Category(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
+
     def __str__(self):
         return self.name
 
@@ -52,6 +56,10 @@ class TaxCode(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        verbose_name = 'Tax code'
+        verbose_name_plural = 'Tax codes'
+
     def __str__(self):
         return f'{self.code} - {self.rate}%'
 
@@ -74,6 +82,10 @@ class Product(models.Model):
     minimum_stock = models.IntegerField(default=5)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Product'
+        verbose_name_plural = 'Products'
 
     @property
     def is_low_stock(self):
@@ -110,6 +122,8 @@ class ProductUnitConversion(models.Model):
 
     class Meta:
         unique_together = ('product', 'unit')
+        verbose_name = 'Product unit conversion'
+        verbose_name_plural = 'Product unit conversions'
 
     def __str__(self):
         return f'{self.product.name}: 1 {self.unit} = {self.base_quantity} base units'
@@ -122,6 +136,10 @@ class ProductImage(models.Model):
     alt_text = models.CharField(max_length=160, blank=True)
     is_primary = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Product image'
+        verbose_name_plural = 'Product images'
 
     def __str__(self):
         return f'{self.product.name} image'
@@ -139,6 +157,8 @@ class Batch(models.Model):
 
     class Meta:
         unique_together = ('product', 'batch_number')
+        verbose_name = 'Batch'
+        verbose_name_plural = 'Batches'
 
     def __str__(self):
         return f'{self.product.name} - {self.batch_number}'
@@ -163,6 +183,10 @@ class InventoryMovement(models.Model):
     note = models.TextField(blank=True)
     actor = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Inventory movement'
+        verbose_name_plural = 'Inventory movements'
 
     def __str__(self):
         return f'{self.product.name} - {self.movement_type} - {self.quantity}'

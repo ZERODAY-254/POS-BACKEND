@@ -57,6 +57,10 @@ class Branch(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        verbose_name = 'Branch'
+        verbose_name_plural = 'Branches'
+
     def __str__(self):
         return self.name
 
@@ -76,6 +80,10 @@ class Terminal(models.Model):
     last_seen_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Terminal'
+        verbose_name_plural = 'Terminals'
 
     def __str__(self):
         return f'{self.branch.code} - {self.name}'
@@ -108,6 +116,10 @@ class ApprovalRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     decided_at = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        verbose_name = 'Approval request'
+        verbose_name_plural = 'Approval requests'
+
     def __str__(self):
         return f'{self.action_type} - {self.status}'
 
@@ -129,6 +141,10 @@ class OfflineSyncLog(models.Model):
     error_message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Offline sync log'
+        verbose_name_plural = 'Offline sync logs'
 
     def __str__(self):
         return f'{self.entity_type} - {self.status}'

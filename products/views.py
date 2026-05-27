@@ -20,9 +20,11 @@ from accounts.permissions import IsInventoryStaff
 from payments.models import PaymentNotification
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsInventoryStaff])
 def product_list(request):
+    if request.method == 'POST':
+        return create_product_response(request)
 
     products = Product.objects.filter(is_active=True).order_by('-created_at')
     search = request.query_params.get('search')
@@ -39,10 +41,7 @@ def product_list(request):
     return Response(serializer.data)
 
 
-@api_view(['POST'])
-@permission_classes([IsInventoryStaff])
-def add_product(request):
-
+def create_product_response(request):
     serializer = ProductSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -52,9 +51,28 @@ def add_product(request):
         return Response({
             'success': True,
             'data': serializer.data
-        })
+        }, status=status.HTTP_201_CREATED)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsInventoryStaff])
+def product_detail(request, product_id):
+    if request.method == 'GET':
+        product = get_object_or_404(Product, id=product_id, is_active=True)
+        return Response(ProductSerializer(product).data)
+
+    if request.method == 'PUT':
+        return update_product(request, product_id)
+
+    return delete_product(request, product_id)
+
+
+@api_view(['POST'])
+@permission_classes([IsInventoryStaff])
+def add_product(request):
+    return create_product_response(request)
 
 
 @api_view(['PUT'])

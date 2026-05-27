@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.http import HttpResponse
 from django.db import transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, F, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import filters, status, viewsets
@@ -12,9 +12,11 @@ from rest_framework.response import Response
 
 from accounts.permissions import RolePermission
 from audit.models import AuditLog
+from customers.models import Customer
 from payments.models import MpesaTransaction, Payment, PaymentNotification
 from payments.mpesa import format_phone_number, send_stk_push
 from products.models import InventoryMovement, Product
+from returns.models import Return
 
 from .models import Sale
 from .serializers import SaleSerializer
@@ -356,11 +358,24 @@ class SaleViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
         today = timezone.localdate()
+        month_start = today.replace(day=1)
         sales = self.get_queryset()
         today_sales = sales.filter(created_at__date=today)
+        month_sales = sales.filter(created_at__date__gte=month_start)
+        returns = Return.objects.filter(is_active=True)
+        today_returns = returns.filter(returned_at__date=today)
+        month_returns = returns.filter(returned_at__date__gte=month_start)
         totals = sales.aggregate(
             total_sales=Sum('grand_total'),
             total_profit=Sum('profit'),
+            transactions=Count('id'),
+        )
+        today_totals = today_sales.aggregate(
+            revenue=Sum('grand_total'),
+            transactions=Count('id'),
+        )
+        month_totals = month_sales.aggregate(
+            revenue=Sum('grand_total'),
             transactions=Count('id'),
         )
         daily = (
@@ -371,6 +386,7 @@ class SaleViewSet(viewsets.ModelViewSet):
         )
 
         top_products = {}
+        today_items_sold = 0
         for sale in sales[:500]:
             for item in sale.items:
                 name = item.get('name', 'Unknown')
@@ -379,6 +395,21 @@ class SaleViewSet(viewsets.ModelViewSet):
                 current = top_products.setdefault(name, {'name': name, 'quantity': 0, 'sales': Decimal('0')})
                 current['quantity'] += quantity
                 current['sales'] += amount
+                if sale.created_at.date() == today:
+                    today_items_sold += quantity
+
+        payment_methods = (
+            sales.values('payment_method')
+            .annotate(total=Sum('grand_total'), count=Count('id'))
+            .order_by('-total')
+        )
+
+        month_revenue = month_totals['revenue'] or Decimal('0')
+        avg_transaction = (
+            (today_totals['revenue'] or Decimal('0')) / today_totals['transactions']
+            if today_totals['transactions']
+            else Decimal('0')
+        )
 
         return Response({
             'total_sales': totals['total_sales'] or Decimal('0'),
@@ -387,6 +418,37 @@ class SaleViewSet(viewsets.ModelViewSet):
             'today_sales': today_sales.aggregate(total=Sum('grand_total'))['total'] or Decimal('0'),
             'daily_sales': list(daily),
             'top_products': sorted(top_products.values(), key=lambda item: item['sales'], reverse=True)[:10],
+            'today': {
+                'revenue': today_totals['revenue'] or Decimal('0'),
+                'transactions': today_totals['transactions'] or 0,
+                'items_sold': today_items_sold,
+                'avg_transaction': avg_transaction,
+                'returns': today_returns.count(),
+            },
+            'this_month': {
+                'revenue': month_revenue,
+                'transactions': month_totals['transactions'] or 0,
+                'returns': month_returns.count(),
+                'return_amount': month_returns.aggregate(total=Sum('amount'))['total'] or Decimal('0'),
+            },
+            'growth': {
+                'revenue_percentage': 0,
+                'vs_last_month': Decimal('0'),
+            },
+            'payment_methods': [
+                {
+                    'method': row['payment_method'] or 'unknown',
+                    'total': row['total'] or Decimal('0'),
+                    'count': row['count'],
+                }
+                for row in payment_methods
+            ],
+            'recent_sales': SaleSerializer(sales[:10], many=True, context={'request': request}).data,
+            'metrics': {
+                'total_customers': Customer.objects.filter(is_active=True).count(),
+                'total_products': Product.objects.filter(is_active=True).count(),
+                'low_stock_products': Product.objects.filter(is_active=True, quantity__lte=F('minimum_stock')).count(),
+            },
         })
 
     def perform_destroy(self, instance):

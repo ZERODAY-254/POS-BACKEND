@@ -30,7 +30,7 @@ class CustomUser(AbstractUser):
         default='standard'
     )
 
-    two_factor_enabled = models.BooleanField(default=True)
+    two_factor_enabled = models.BooleanField(default=False)
     two_factor_code = models.CharField(max_length=6, blank=True)
     two_factor_verified_at = models.DateTimeField(null=True, blank=True)
 

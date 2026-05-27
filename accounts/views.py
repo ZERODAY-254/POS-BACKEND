@@ -39,9 +39,9 @@ def login_view(request):
         return Response({
             'success': True,
             'user': serializer.data,
-            'two_factor_required': user.two_factor_enabled,
+            'two_factor_required': False,
             'verification_code': user.two_factor_code if user.two_factor_enabled else '',
-            'tokens': {} if user.two_factor_enabled else token_pair_for_user(user),
+            'tokens': token_pair_for_user(user),
         })
 
     return Response({

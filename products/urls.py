@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     product_list,
+    product_detail,
     add_product,
     category_list,
     adjust_inventory,
@@ -18,6 +19,7 @@ from .views import (
 urlpatterns = [
 
     path('', product_list),
+    path('<int:product_id>/', product_detail),
     path('categories/', category_list),
     path('suppliers/', supplier_list),
     path('units/', unit_list),

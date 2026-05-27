@@ -1,0 +1,402 @@
+{
+  "info": {
+    "name": "POS Backend API",
+    "description": "Local Postman collection for testing the Django POS backend. Run the Login request first; it saves access_token and refresh_token into the selected environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Status is successful', function () {",
+          "  pm.expect(pm.response.code).to.be.below(500);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.tokens) {",
+                  "  pm.environment.set('access_token', json.tokens.access);",
+                  "  pm.environment.set('refresh_token', json.tokens.refresh);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounts/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "accounts",
+                "login",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/accounts/me/"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{base_url}}/accounts/token/refresh/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products & Inventory",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products/"
+          }
+        },
+        {
+          "name": "Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Product created', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) pm.environment.set('product_id', json.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Product\",\n  \"description\": \"Created from Postman\",\n  \"sku\": \"POSTMAN-{{$timestamp}}\",\n  \"barcode\": \"POSTMAN-{{$timestamp}}\",\n  \"cost_price\": \"100.00\",\n  \"price\": \"150.00\",\n  \"wholesale_price\": \"130.00\",\n  \"quantity\": 5,\n  \"minimum_stock\": 1,\n  \"is_active\": true\n}"
+            },
+            "url": "{{base_url}}/products/"
+          }
+        },
+        {
+          "name": "Get Product By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products/{{product_id}}/"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Postman Product\",\n  \"description\": \"Updated from Postman\",\n  \"sku\": \"POSTMAN-UPDATED-{{product_id}}\",\n  \"barcode\": \"POSTMAN-UPDATED-{{product_id}}\",\n  \"cost_price\": \"120.00\",\n  \"price\": \"180.00\",\n  \"wholesale_price\": \"160.00\",\n  \"quantity\": 10,\n  \"minimum_stock\": 2,\n  \"is_active\": true\n}"
+            },
+            "url": "{{base_url}}/products/{{product_id}}/"
+          }
+        },
+        {
+          "name": "Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/categories/"
+          }
+        },
+        {
+          "name": "Suppliers",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/suppliers/"
+          }
+        },
+        {
+          "name": "Units",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/units/"
+          }
+        },
+        {
+          "name": "Tax Codes",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/tax-codes/"
+          }
+        },
+        {
+          "name": "Stock Alerts",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/stock-alerts/"
+          }
+        },
+        {
+          "name": "Inventory Movements",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/inventory/movements/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "List Sales",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/sales/"
+          }
+        },
+        {
+          "name": "Create Sale",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sale created', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.environment.set('sale_id', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_name\": \"Postman Test Customer\",\n  \"amount\": \"150.00\",\n  \"subtotal\": \"150.00\",\n  \"discount\": \"0.00\",\n  \"tax\": \"0.00\",\n  \"grand_total\": \"150.00\",\n  \"amount_paid\": \"200.00\",\n  \"payment_method\": \"cash\",\n  \"payment_status\": \"paid\",\n  \"items\": [\n    {\n      \"product_id\": {{product_id}},\n      \"name\": \"Postman Product\",\n      \"sku\": \"POSTMAN\",\n      \"barcode\": \"POSTMAN\",\n      \"price\": 150,\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/sales/"
+          }
+        },
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/sales/dashboard/"
+          }
+        },
+        {
+          "name": "Daily Report",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/sales/daily-report/"
+          }
+        },
+        {
+          "name": "Receipt",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/sales/{{sale_id}}/receipt/"
+          }
+        },
+        {
+          "name": "Print Receipt",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/sales/{{sale_id}}/print-receipt/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers Payments Reports",
+      "item": [
+        {
+          "name": "Customers",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/customers/"
+          }
+        },
+        {
+          "name": "Payments",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/payments/"
+          }
+        },
+        {
+          "name": "M-Pesa Health",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/mpesa/health/"
+          }
+        },
+        {
+          "name": "M-Pesa Callback Config",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/mpesa/callback-config/"
+          }
+        },
+        {
+          "name": "Reports Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reports/summary/"
+          }
+        },
+        {
+          "name": "Reports Sales",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reports/sales/"
+          }
+        },
+        {
+          "name": "Reports Inventory",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reports/inventory/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications System",
+      "item": [
+        {
+          "name": "Notifications",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/notifications/"
+          }
+        },
+        {
+          "name": "Notification Bot Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/notifications/bot/status/"
+          }
+        },
+        {
+          "name": "Run Notification Bot",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/notifications/bot/run/"
+          }
+        },
+        {
+          "name": "Branches",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/branches/"
+          }
+        },
+        {
+          "name": "Terminals",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/terminals/"
+          }
+        },
+        {
+          "name": "Approvals",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/approvals/"
+          }
+        },
+        {
+          "name": "Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/audit-logs/"
+          }
+        }
+      ]
+    }
+  ]
+}

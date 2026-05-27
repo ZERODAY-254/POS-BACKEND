@@ -39,7 +39,7 @@ load_env_file(BASE_DIR / '.env')
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
     'DJANGO_SECRET_KEY',
-    'django-insecure-%jj7v9j64n^n6#jp3)d-htni9obs3aux49vxuh6d!#6q_@nthn'
+    'django-insecure-local-development-key-change-me'
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -63,14 +63,18 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'products',
+    'inventory',
     'salesapp',
     'customers',
     'payments',
+    'mpesa',
+    'notifications',
     'returns',
     'orders',
     'audit',
     'accounts',
     'api',
+    'reports',
     'users',
 ]
 
@@ -186,10 +190,10 @@ REST_FRAMEWORK = {
 MPESA_ENVIRONMENT = os.environ.get('MPESA_ENVIRONMENT', 'sandbox')
 MPESA_CONSUMER_KEY = os.environ.get('MPESA_CONSUMER_KEY', '')
 MPESA_CONSUMER_SECRET = os.environ.get('MPESA_CONSUMER_SECRET', '')
-MPESA_SHORTCODE = os.environ.get('MPESA_SHORTCODE', '')
+MPESA_SHORTCODE = os.environ.get('MPESA_SHORTCODE', '174379')
 MPESA_PASSKEY = os.environ.get('MPESA_PASSKEY', '')
 MPESA_CALLBACK_URL = os.environ.get(
     'MPESA_CALLBACK_URL',
-    'http://127.0.0.1:8000/api/mpesa/callback/'
+    'https://mydomain.com/mpesa-express-simulate/'
 )
 MPESA_DEMO_MODE = os.environ.get('MPESA_DEMO_MODE', 'True') == 'True'
