@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     deactivate_user,
     login_view,
+    logout_view,
     me_view,
     register_view,
     request_password_reset,
@@ -14,6 +15,8 @@ urlpatterns = [
 
     path('login/', login_view, name='login'),
     path('me/', me_view, name='me'),
+    path('refresh/', refresh_token_view, name='refresh_token_alias'),
+    path('logout/', logout_view, name='logout'),
     path('token/refresh/', refresh_token_view, name='refresh_token'),
     path('register/', register_view, name='register'),
     path('two-factor/verify/', verify_two_factor, name='verify_two_factor'),

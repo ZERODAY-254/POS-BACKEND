@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import CustomUser
 from .serializers import UserSerializer
@@ -19,6 +20,7 @@ def generate_demo_code(user):
     return str(100000 + (user.id * 137) % 899999)
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -50,6 +52,7 @@ def login_view(request):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_view(request):
@@ -58,7 +61,7 @@ def register_view(request):
     password = request.data.get('password', '')
     role = request.data.get('role', 'customer')
 
-    allowed_roles = ['customer', 'cashier', 'storekeeper', 'manager']
+    allowed_roles = ['admin', 'accountant', 'customer', 'cashier', 'storekeeper', 'manager']
 
     if not username or not password:
         return Response({
@@ -97,6 +100,7 @@ def register_view(request):
     })
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def request_password_reset(request):
@@ -120,6 +124,7 @@ def request_password_reset(request):
     })
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def reset_password(request):
@@ -159,6 +164,7 @@ def reset_password(request):
     })
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_two_factor(request):
@@ -225,6 +231,15 @@ def me_view(request):
     return Response({
         'success': True,
         'user': UserSerializer(request.user).data,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    return Response({
+        'success': True,
+        'message': 'Logged out successfully'
     })
 
 

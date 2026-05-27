@@ -65,8 +65,8 @@ class MpesaTransactionViewSet(viewsets.ReadOnlyModelViewSet):
     def stk_push(self, request):
         phone_number = request.data.get('phone_number', '').strip()
         amount = Decimal(str(request.data.get('amount', '0') or '0'))
-        customer_name = request.data.get('customer_name', 'M-Pesa Customer').strip()
-        account_reference = request.data.get('account_reference', 'POS-SALE').strip()
+        customer_name = request.data.get('customer_name', 'SALES MANAGEMENT SYSTEM').strip()
+        account_reference = request.data.get('account_reference', 'SALES MANAGEMENT SYSTEM').strip()
 
         if not phone_number or amount <= 0:
             return Response({
@@ -126,7 +126,7 @@ class MpesaTransactionViewSet(viewsets.ReadOnlyModelViewSet):
         PaymentNotification.objects.create(
             channel='mpesa',
             title='M-Pesa payment request sent',
-            message=f'STK push request sent to {phone_number} for KES {amount}.',
+            message=f'SALES MANAGEMENT SYSTEM M-Pesa request sent to {phone_number} for KES {amount}.',
             payment=payment,
             mpesa_transaction=transaction,
         )
@@ -379,7 +379,7 @@ def mpesa_callback_config(request):
         'configured_callback_url': configured_callback,
         'local_callback_url': local_callback,
         'is_public_https_callback': is_public,
-        'message': warning or 'Callback URL is suitable for Daraja.',
+        'message': warning or 'Callback URL is suitable for SALES MANAGEMENT SYSTEM.',
     })
 
 
@@ -389,7 +389,7 @@ def mpesa_health(request):
     try:
         token = get_access_token()
         token_ok = bool(token)
-        message = 'Daraja access token generated successfully'
+        message = 'SALES MANAGEMENT SYSTEM M-Pesa access token generated successfully'
     except Exception as error:
         token_ok = False
         message = str(error)

@@ -1,6 +1,8 @@
 from decimal import Decimal
 import zipfile
 
+from django.conf import settings
+from django.http import FileResponse, Http404
 from django.db import models
 from django.http import HttpResponse
 from django.db.models import Count, Sum
@@ -12,12 +14,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.permissions import IsReportsStaff, IsSalesStaff
+from customers.models import Customer
 from payments.models import MpesaTransaction, Payment, PaymentNotification
 from products.models import Category, InventoryMovement, Product, ProductUnit, Supplier, TaxCode
 from salesapp.models import Sale
 from .models import ApprovalRequest, Branch, OfflineSyncLog, Terminal
 from .serializers import ApprovalRequestSerializer, BranchSerializer, OfflineSyncLogSerializer, TerminalSerializer
 from .excel import CONTENT_TYPE, build_xlsx, read_xlsx_rows
+from .excel_sync import EXPORTS, export_status, sync_all_excel_exports, sync_excel_export
 
 
 def parse_date_range(request):
@@ -191,6 +195,82 @@ def dashboard_charts(request):
 
 
 @api_view(['GET'])
+@permission_classes([IsReportsStaff])
+def dashboard_statistics(request):
+    start_date, end_date = parse_date_range(request)
+    sales = Sale.objects.filter(is_active=True, created_at__date__gte=start_date, created_at__date__lte=end_date)
+    payments = Payment.objects.filter(is_active=True, paid_at__date__gte=start_date, paid_at__date__lte=end_date)
+    sales_totals = sales.aggregate(total=Sum('grand_total'), profit=Sum('profit'), count=Count('id'))
+
+    return Response({
+        'total_sales': sales_totals['total'] or Decimal('0'),
+        'total_profit': sales_totals['profit'] or Decimal('0'),
+        'transactions': sales_totals['count'] or 0,
+        'payment_total': payments.aggregate(total=Sum('amount'))['total'] or Decimal('0'),
+        'product_count': Product.objects.filter(is_active=True).count(),
+        'customer_count': Customer.objects.filter(is_active=True).count(),
+        'low_stock_count': Product.objects.filter(is_active=True, quantity__lte=models.F('minimum_stock')).count(),
+        'pending_mpesa': MpesaTransaction.objects.filter(status='pending').count(),
+        'unread_notifications': PaymentNotification.objects.filter(is_read=False).count(),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsReportsStaff])
+def reports_daily_summary(request):
+    date_text = request.query_params.get('date')
+    report_date = timezone.datetime.fromisoformat(date_text).date() if date_text else timezone.localdate()
+    sales = Sale.objects.filter(is_active=True, created_at__date=report_date)
+    payments = Payment.objects.filter(is_active=True, paid_at__date=report_date)
+
+    return Response({
+        'date': report_date,
+        'sales': sales.aggregate(total=Sum('grand_total'), profit=Sum('profit'), count=Count('id')),
+        'payments': list(payments.values('method').annotate(total=Sum('amount'), count=Count('id')).order_by('method')),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsReportsStaff])
+def reports_transaction_history(request):
+    limit = int(request.query_params.get('limit', 100))
+    sales = Sale.objects.filter(is_active=True).order_by('-created_at')[:limit]
+
+    return Response([
+        {
+            'id': sale.id,
+            'receipt_number': sale.receipt_number,
+            'invoice_number': sale.invoice_number,
+            'customer_name': sale.customer_name,
+            'grand_total': sale.grand_total,
+            'payment_method': sale.payment_method,
+            'payment_status': sale.payment_status,
+            'created_at': sale.created_at,
+        }
+        for sale in sales
+    ])
+
+
+@api_view(['GET'])
+@permission_classes([IsReportsStaff])
+def reports_top_products(request):
+    start_date, end_date = parse_date_range(request)
+    sales = Sale.objects.filter(is_active=True, created_at__date__gte=start_date, created_at__date__lte=end_date)
+    top_products = {}
+
+    for sale in sales[:1000]:
+        for item in sale.items:
+            name = item.get('name', 'Unknown')
+            quantity = int(item.get('quantity') or 0)
+            amount = Decimal(str(item.get('price') or 0)) * quantity
+            current = top_products.setdefault(name, {'name': name, 'quantity': 0, 'total': Decimal('0')})
+            current['quantity'] += quantity
+            current['total'] += amount
+
+    return Response(sorted(top_products.values(), key=lambda item: item['total'], reverse=True)[:20])
+
+
+@api_view(['GET'])
 @permission_classes([IsSalesStaff])
 def react_payment_config(request):
     return Response({
@@ -304,6 +384,53 @@ def excel_response(filename, sheet_name, headers, rows):
     response = HttpResponse(build_xlsx(sheet_name, headers, rows), content_type=CONTENT_TYPE)
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+@api_view(['GET'])
+@permission_classes([IsReportsStaff])
+def automatic_excel_status(request):
+    return Response({
+        'auto_sync_enabled': settings.EXCEL_AUTO_SYNC_ENABLED,
+        'exports': export_status(),
+        'download_url_pattern': '/api/excel/automatic/<name>/download/',
+        'rebuild_url': '/api/excel/automatic/rebuild/',
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsReportsStaff])
+def rebuild_automatic_excel(request):
+    export_name = request.data.get('name')
+    if export_name:
+        if export_name not in EXPORTS:
+            return Response({
+                'success': False,
+                'message': f'Unknown export "{export_name}"',
+                'available_exports': sorted(EXPORTS.keys()),
+            }, status=status.HTTP_400_BAD_REQUEST)
+        paths = {export_name: str(sync_excel_export(export_name))}
+    else:
+        paths = sync_all_excel_exports()
+
+    return Response({
+        'success': True,
+        'exports': paths,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsReportsStaff])
+def download_automatic_excel(request, name):
+    if name not in EXPORTS:
+        raise Http404('Unknown Excel export')
+
+    path = sync_excel_export(name)
+    return FileResponse(
+        open(path, 'rb'),
+        as_attachment=True,
+        filename=EXPORTS[name]['filename'],
+        content_type=CONTENT_TYPE,
+    )
 
 
 @api_view(['GET'])

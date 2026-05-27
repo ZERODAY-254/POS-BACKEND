@@ -8,6 +8,7 @@ class CustomUser(AbstractUser):
         ('admin', 'Admin'),
         ('storekeeper', 'StoreKeeper'),
         ('cashier', 'Cashier'),
+        ('accountant', 'Accountant'),
         ('customer', 'Customer'),
         ('manager', 'Manager')
     )

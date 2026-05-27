@@ -59,6 +59,8 @@ def api_endpoints(request):
             'reports_summary': request.build_absolute_uri('/api/reports/summary/'),
             'dashboard_charts': request.build_absolute_uri('/api/dashboard/charts/'),
             'excel_products_template': request.build_absolute_uri('/api/excel/template/products/'),
+            'automatic_excel_status': request.build_absolute_uri('/api/excel/automatic/'),
+            'automatic_excel_rebuild': request.build_absolute_uri('/api/excel/automatic/rebuild/'),
         },
         'note': 'Protected endpoints require Authorization: Bearer <access_token>.',
     })

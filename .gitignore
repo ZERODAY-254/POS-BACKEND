@@ -16,6 +16,7 @@ django.out.log
 
 media/
 staticfiles/
+exports/
 
 .pytest_cache/
 .coverage

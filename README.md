@@ -56,6 +56,8 @@ Payments: /api/payments/
 M-Pesa STK: POST /api/mpesa-transactions/stk-push/
 Reports: /api/reports/summary/
 Excel template: /api/excel/template/products/
+Automatic Excel status: /api/excel/automatic/
+Rebuild automatic Excel files: POST /api/excel/automatic/rebuild/
 ```
 
 Use JWT tokens with:
@@ -69,6 +71,50 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 ```powershell
 python manage.py check
 python manage.py migrate --check
+```
+
+## Automatic Excel Files
+
+The backend keeps Excel workbooks updated automatically when records are saved in the database.
+
+Generated files are stored locally in:
+
+```text
+backend/exports/
+```
+
+The folder is ignored by Git because it contains generated runtime data.
+
+Supported automatic files:
+
+```text
+products.xlsx
+sales.xlsx
+customers.xlsx
+payments.xlsx
+mpesa_transactions.xlsx
+inventory_movements.xlsx
+```
+
+Rebuild all Excel files manually:
+
+```powershell
+python manage.py sync_excel_exports
+```
+
+Rebuild one file:
+
+```powershell
+python manage.py sync_excel_exports products
+```
+
+Postman endpoints:
+
+```http
+GET  http://127.0.0.1:8000/api/excel/automatic/
+POST http://127.0.0.1:8000/api/excel/automatic/rebuild/
+GET  http://127.0.0.1:8000/api/excel/automatic/products/download/
+GET  http://127.0.0.1:8000/api/excel/automatic/sales/download/
 ```
 
 ## Create A Postman Test User
