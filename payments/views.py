@@ -164,6 +164,19 @@ class MpesaTransactionViewSet(viewsets.ReadOnlyModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         result = query_stk_status(transaction.checkout_request_id)
+        if not result.get('result_code'):
+            transaction.raw_callback = {
+                **transaction.raw_callback,
+                'verification': result.get('raw', {}),
+                'verification_error': result.get('message', 'Verification failed'),
+            }
+            transaction.save(update_fields=['raw_callback', 'updated_at'])
+            return Response({
+                'success': False,
+                'message': result.get('message', 'Verification failed. Try again later.'),
+                'transaction': MpesaTransactionSerializer(transaction).data,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         transaction = confirm_mpesa_transaction(
             transaction=transaction,
             result_code=result.get('result_code', transaction.result_code or '1'),

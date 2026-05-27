@@ -45,9 +45,12 @@ MPESA_CALLBACK_URL=https://your-real-domain.com/api/mpesa/callback/
 ```text
 Admin: http://127.0.0.1:8000/admin/
 API base: http://127.0.0.1:8000/api/
-Login: POST /api/accounts/login/
-Current user: GET /api/accounts/me/
-Products: GET /api/
+Health: GET /api/health/
+Endpoint list: GET /api/endpoints/
+Login: POST /api/auth/login/
+Current user: GET /api/auth/me/
+Products: GET /api/products/
+Categories: GET /api/products/categories/
 Sales: /api/sales/
 Payments: /api/payments/
 M-Pesa STK: POST /api/mpesa-transactions/stk-push/
@@ -66,4 +69,28 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 ```powershell
 python manage.py check
 python manage.py migrate --check
+```
+
+## Create A Postman Test User
+
+```powershell
+python manage.py seed_demo_user
+```
+
+Then login in Postman:
+
+```http
+POST http://127.0.0.1:8000/api/auth/login/
+Content-Type: application/json
+
+{
+  "username": "manager",
+  "password": "Manager@12345"
+}
+```
+
+Copy `tokens.access` from the response and use it as:
+
+```http
+Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
