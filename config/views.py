@@ -1,9 +1,23 @@
 from django.conf import settings
 from django.db import connection
+from django.http import FileResponse, HttpResponse
 from django.urls import reverse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+
+def frontend_app(request, path=''):
+    index_path = settings.FRONTEND_DIST_DIR / 'index.html'
+
+    if index_path.exists():
+        return FileResponse(open(index_path, 'rb'), content_type='text/html')
+
+    return HttpResponse(
+        'Frontend build not found. Run "npm.cmd run build" inside the frontend folder, then restart Django.',
+        status=503,
+        content_type='text/plain',
+    )
 
 
 @api_view(['GET'])

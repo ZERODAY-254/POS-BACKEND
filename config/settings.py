@@ -15,6 +15,8 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
+FRONTEND_DIST_DIR = PROJECT_ROOT / 'frontend' / 'dist'
 
 
 def load_env_file(path):
@@ -96,7 +98,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [FRONTEND_DIST_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

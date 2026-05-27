@@ -1,7 +1,9 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.conf import settings
+from django.urls import path, include, re_path
+from django.views.static import serve
 from products.views import product_detail, product_list
-from .views import api_endpoints, health_check
+from .views import api_endpoints, frontend_app, health_check
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -40,4 +42,12 @@ urlpatterns = [
     path('api/', include('audit.urls')),
 
     path('api/products/', include('products.urls')),
+
+    re_path(
+        r'^assets/(?P<path>.*)$',
+        serve,
+        {'document_root': settings.FRONTEND_DIST_DIR / 'assets'},
+        name='frontend_assets',
+    ),
+    re_path(r'^(?P<path>.*)$', frontend_app, name='frontend_app'),
 ]
